@@ -1,0 +1,41 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: stormsense_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stormsense_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATA_PROVIDER=mock
+      - IMD_BASE_URL=https://api.imd.gov.in
+      - MOSDAC_BASE_URL=https://mosdac.gov.in/api
+      - NOAA_BASE_URL=https://www.ncei.noaa.gov/data/hurricane-satellite-hursat-b1/archive/v06
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=stormsense_cyclone_vectors
+      - MEM0_COLLECTION=cyclone_memories
+      - ENABLE_VISION_MODEL=false
+    depends_on:
+      - qdrant
+    volumes:
+      - ./stormsense_dataset:/app/stormsense_dataset:ro
+
+volumes:
+  qdrant_storage:

@@ -3,7 +3,12 @@ from pathlib import Path
 from typing import List, Optional
 import numpy as np
 from PIL import Image
-import torch
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    torch = None
+    HAS_TORCH = False
 
 from backend.app.schemas.ai import (
     AIAnalysisRequest,
@@ -25,9 +30,9 @@ class SigLIPModelManager:
     def __init__(self):
         self.model = None
         self.processor = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if (HAS_TORCH and torch.cuda.is_available()) else "cpu"
         self.is_loaded = False
-        self.enabled = os.getenv("ENABLE_VISION_MODEL", "true").lower() == "true"
+        self.enabled = os.getenv("ENABLE_VISION_MODEL", "true").lower() == "true" and HAS_TORCH
 
     def load_model(self):
         if not self.enabled:

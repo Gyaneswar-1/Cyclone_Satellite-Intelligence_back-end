@@ -65,6 +65,37 @@ class StormSenseRAGRetriever:
                     )
                 )
 
+        # Check Qdrant / Mem0 memories if available
+        try:
+            from qdrant_client import QdrantClient
+            qdrant_host = os.getenv("QDRANT_HOST", "localhost")
+            qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
+            mem_col = os.getenv("MEM0_COLLECTION", "cyclone_memories")
+            qclient = QdrantClient(host=qdrant_host, port=qdrant_port, timeout=1.5)
+            if qclient.collection_exists(mem_col):
+                points, _ = qclient.scroll(
+                    collection_name=mem_col,
+                    limit=10,
+                    with_payload=True,
+                    with_vectors=False,
+                )
+                keywords = [w.lower() for w in query.split() if len(w) > 3]
+                for pt in points:
+                    txt = str(pt.payload.get("text", ""))
+                    if any(k in txt.lower() for k in keywords):
+                        results.append(
+                            CitationSource(
+                                title=str(pt.payload.get("source", "Cyclone Memory Record")),
+                                source="Qdrant Mem0 Cyclone Knowledge Base",
+                                url_or_path=f"qdrant://{mem_col}/{pt.id}",
+                                publication_date=str(pt.payload.get("created_at", "2026-09-05"))[:10],
+                                section=str(pt.payload.get("category", "Domain Knowledge")),
+                                snippet=txt,
+                            )
+                        )
+        except Exception as e:
+            logger.debug(f"[RAGRetriever] Qdrant memory lookup skipped: {e}")
+
         return results
 
 

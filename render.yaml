@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: stormsense-cyclone-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATA_PROVIDER
+        value: mock
+      - key: ENABLE_VISION_MODEL
+        value: "false"
